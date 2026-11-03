@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>Harmonic Cadences Practice Tool</title>
+    <style>
+        body{background:#121212;margin:0;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;height:100vh;font-family:sans-serif;overflow:hidden;touch-action:none}
+        .controls-container{position:absolute;top:10px;right:10px;z-index:200;display:flex;flex-direction:column;align-items:flex-end;gap:5px;background:rgba(20,20,20,0.9);padding:6px 8px;border-radius:6px;border:1px solid #333;width:120px;box-sizing:border-box}
+        .ui-checkbox-container{display:flex;align-items:center;gap:5px;font-size:10px;color:#aaa;cursor:pointer;user-select:none;width:100%;justify-content:space-between;margin-top:2px}
+        .control-panel-select{background:#222;color:#fff;border:1px solid #555;padding:2px 4px;border-radius:3px;font-size:10px;font-weight:700;outline:none;cursor:pointer;width:55px;box-sizing:border-box;text-align:center}
+        .control-panel-select:focus{border-color:#0fc}
+        .control-row-item{display:flex;align-items:center;justify-content:space-between;width:100%;font-size:10px;color:#aaa;gap:4px}
+        .top-section{width:82vw;display:flex;flex-direction:column;align-items:center;margin-top:20px}
+        #main-app-container,.bottom-actions{width:82vw;display:flex;flex-direction:column;align-items:center}
+        .bottom-actions{flex-direction:row!important;gap:8px;justify-content:space-between}
+        .type-toggle{background:#333;color:#aaa;border:1px solid transparent;padding:8px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;flex:1;text-align:center;user-select:none}
+        .type-toggle.active{background:#444;color:#0fc;border-color:#0fc}
+        .selector-group{background:#222;padding:12px;border-radius:14px;display:flex;flex-direction:column;gap:10px;border:1px solid #444;width:100%;box-sizing:border-box}
+        .row{display:flex;gap:6px;width:100%;min-height:35px;flex-wrap:wrap;justify-content:center;align-items:center}
+        #piano-container{background:#000;border-radius:8px;display:flex;width:100%;height:250px;position:relative;border:2px solid #333;overflow:hidden;flex-shrink:0;user-select:none}
+        .key{cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:12px;box-sizing:border-box;position:relative}
+        .white{background:#fff;border:1px solid #bbb;width:calc(100%/22);height:100%;flex-shrink:0;z-index:1}
+        .black{background:#222;z-index:5;position:absolute;width:calc((100%/22)*0.7);height:60%;top:0;transform:translateX(-50%);border-radius:0 0 3px 3px;padding-bottom:8px}
+        .dot-stack { display: flex; flex-direction: column-reverse; gap: 3px; pointer-events: none; align-items: center; position: relative; width: 100%; min-height: 32px; z-index: 10; }
+        .dot{width:22px;height:22px;border-radius:50%;display:none;border:1px solid rgba(255,255,255,.4);font-size:9px;font-weight:900;color:#fff;line-height:22px;text-align:center;position:relative;box-shadow:0 2px 4px rgba(0,0,0,0.5)}
+        .key.white.active{background:#e0e0e0}
+        .key.black.active{background:#444}
+        .key.active .dot-current { display: block; background: #00ff66; box-shadow: 0 0 10px #00ff66; color:#000 }
+        .key.has-step1 .dot-1 { display: block; background: #007bff; z-index: 15 }
+        .key.has-step2 .dot-2 { display: block; background: #6f42c1; z-index: 15 }
+        .key.has-step3 .dot-3 { display: block; background: #fd7e14; z-index: 15 }
+        #display-row{width:100%;display:flex;flex-direction:row;align-items:center;min-height:90px;position:relative;justify-content: center;}
+        #target-text{font-size:22px;font-weight:700;color:#0fc;text-align:center;cursor:pointer;z-index: 10; flex:1;user-select:none}
+        #debug-log{width:320px;background:rgba(0,0,0,0.95);color:#fc0;font-size:12px;padding:12px;border-radius:8px;border:1px solid #fc0;display:none;line-height:1.4;position:absolute;left:0;top:10px;z-index:100;text-align:left;font-family:monospace;white-space:pre;pointer-events: auto; user-select: text;}
+        .action-btn{flex:1;padding:14px 5px;border-radius:10px;border:none;font-weight:900;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none}
+        #btn-new{background:#3d3d3d;color:#fff}#btn-confirm{background:#28a745;color:#fff}#btn-confirm.replay-mode{background:#3498db;color:#fff}#btn-reset{background:#c0392b;color:#fff;flex:.6}
+    </style>
+</head>
+<body>
+<div class="controls-container">
+    <div class="control-row-item">
+        <span>Lng:</span>
+        <select id="lang-dropdown" class="control-panel-select">
+            <option value="en">EN</option><option value="de">DE</option><option value="fr">FR</option><option value="it">IT</option><option value="sp">SP</option>
+        </select>
+    </div>
+    <div class="control-row-item">
+        <span>Form:</span>
+        <select id="voicing-dropdown-list" class="control-panel-select">
+            <option value="3">3</option>
+            <option value="7">7</option>
+            <option value="3/7">3/7</option>
+            <option value="Syn">Syn</option>
+        </select>
+    </div>
+    <label class="ui-checkbox-container">Play <input type="checkbox" id="play-cb" checked></label>
+    <label class="ui-checkbox-container">Auto <input type="checkbox" id="auto-cb"></label>
+</div>
+<div class="top-section">
+    <div class="selector-group">
+        <div id="paradigm-row" class="row"></div>
+        <div id="type-row" class="row"></div>
+    </div>
+</div>
+<div id="main-app-container">
+    <div id="display-row"><div id="debug-log"></div><div id="target-text">READY</div></div>
+    <div id="piano-container"></div>
+</div>
+<div class="bottom-actions">
+    <button id="btn-new" class="action-btn">NEW</button>
+    <button id="btn-confirm" class="action-btn">CONFIRM</button>
+    <button id="btn-reset" class="action-btn">RESET</button>
+</div>
+<script>
+
+// // CHUNK2 START
+const noteNamesList = "C,Db,D,Eb,E,F,Gb,G,Ab,A,Bb,B".split(",");
+const midiToNameMap = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+let activeChallenge = null, currentStepIndex = 0, pianoKeys = [], isDebugMode = false, isReplayMode = false;
+let appState = { play: true, auto: false, paradigm: 'maj', history: ['ii-V-I'], activeVoicing: '3/7', currentLang: 'en', exerciseHistory: [] };
+
+const paradigmList = [
+    { id: 'maj', label: 'Maj' }, { id: 'min', label: 'Min' },
+    { id: 'color1', label: 'Color1' }, { id: 'color2', label: 'Color2' },
+    { id: 'color3', label: 'Color3' }, { id: 'color4', label: 'Color4' }
+];
+
+const translations = {
+    en: { correct: 'CORRECT!', tryAgain: 'TRY AGAIN' },
+    de: { correct: 'RICHTIG!', tryAgain: 'VERSUCHE ES' },
+    fr: { correct: 'CORRECT !', tryAgain: 'RÉESSAYER' },
+    it: { correct: 'CORRETTO!', tryAgain: 'RIPROVA' },
+    sp: { correct: '¡CORRECTO!', tryAgain: 'INTÉNTALO' }
+};
+
+const scaleTable = {
+    "A":  "X,A,B,C#,D,E,F#,G#,A,B,C#,D,E,F#,G#,A,B,C#,D,E,F#,G#,A,B,C#,D,E,F#,G#".split(","),
+    "Ab": "X,Ab,Bb,C,Db,Eb,F,G,Ab,Bb,C,Db,Eb,F,G,Ab,Bb,C,Db,Eb,F,G,Ab,Bb,C,Db,Eb,F,G".split(","),
+    "B":  "X,B,C#,D#,E,F#,G#,A#,B,C#,D#,E,F#,G#,A#,B,C#,D#,E,F#,G#,A#,B,C#,D#,E,F#,G#,A#".split(","),
+    "Bb": "X,Bb,C,D,Eb,F,G,A,Bb,C,D,Eb,F,G,A,Bb,C,D,Eb,F,G,A,Bb,C,D,Eb,F,G,A".split(","),
+    "C":  "X,C,D,E,F,G,A,B,C,D,E,F,G,A,B,C,D,E,F,G,A,B,C,D,E,F,G,A,B".split(","),
+    "C#": "X,C#,D#,E#,F#,G#,A#,B#,C#,D#,E#,F#,G#,A#,B#,C#,D#,E#,F#,G#,A#,B#,C#,D#,E#,F#,G#,A#,B#".split(","),
+    "D":  "X,D,E,F#,G,A,B,C#,D,E,F#,G,A,B,C#,D,E,F#,G,A,B,C#,D,E,F#,G,A,B,C#".split(","),
+    "Db": "X,Db,Eb,F,Gb,Ab,Bb,C,Db,Eb,F,Gb,Ab,Bb,C,Db,Eb,F,Gb,Ab,Bb,C,Db,Eb,F,Gb,Ab,Bb,C".split(","),
+    "E":  "X,E,F#,G#,A,B,C#,D#,E,F#,G#,A,B,C#,D#,E,F#,G#,A,B,C#,D#,E,F#,G#,A,B,C#,D#".split(","),
+    "Eb": "X,Eb,F,G,Ab,Bb,C,D,Eb,F,G,Ab,Bb,C,D,Eb,F,G,Ab,Bb,C,D,Eb,F,G,Ab,Bb,C,D".split(","),
+    "F":  "X,F,G,A,Bb,C,D,E,F,G,A,Bb,C,D,E,F,G,A,Bb,C,D,E,F,G,A,Bb,C,D,E".split(","),
+    "F#": "X,F#,G#,A#,B,C#,D#,E#,F#,G#,A#,B,C#,D#,E#,F#,G#,A#,B,C#,D#,E#,F#,G#,A#,B,C#,D#,E#".split(","),
+    "Gb": "X,Gb,Ab,Bb,Cb,Db,Eb,F,Gb,Ab,Bb,Cb,Db,Eb,F,Gb,Ab,Bb,Cb,Db,Eb,F,Gb,Ab,Bb,Cb,Db,Eb,F".split(","),
+    "G":  "X,G,A,B,C,D,E,F#,G,A,B,C,D,E,F#,G,A,B,C,D,E,F#,G,A,B,C,D,E,F#".split(",")
+};
+
+const customAlterationTable = {
+    "Natural":{"A":"A","A#":"A#","Ab":"Ab","B":"B","B#":"B#","Bb":"Bb","C":"C","C#":"C#","Cb":"Cb","D":"D","D#":"D#","Db":"Db","E":"E","E#":"E#","Eb":"Eb","F":"F","F#":"F#","Fb":"Fb","G":"G","Gb":"Gb","G#":"G#"},
+    "Bemol":{"A":"Ab","A#":"A","Ab":"G","B":"Bb","B#":"B","Bb":"A","C":"B","C#":"C","Cb":"Bb","D":"Db","D#":"D","Db":"C","E":"Eb","E#":"E","Eb":"D","F":"E","F#":"F","Fb":"Eb","G":"Gb","Gb":"F","G#":"G"},
+    "Sharp":{"A":"A#","A#":"B","Ab":"A","B":"C","B#":"C#","Bb":"B","C":"C#","C#":"D","Cb":"C","D":"D#","D#":"E","Db":"D","E":"F","E#":"F#","Eb":"E","F":"F#","F#":"G","Fb":"F","G":"G#","Gb":"G","G#":"A"}
+};
+
+const semitoneMap = {
+    "b2": 1,  "2": 2,   "#2": 3,  "b3": 3,  "3": 4,   "4": 5,   "#4": 6,
+    "b5": 6,  "5": 7,   "#5": 8,  "b6": 8,  "6": 9,   "bb7": 9, "b7": 10, "7": 11, "8": 12,
+    "b9": 13, "9": 14,  "#9": 15, "11": 17, "#11": 18, "b13": 20, "13": 21
+};
+
+// FIXED STRING DICTIONARY LITERAL KEYS
+const chordFormulaTable = {
+    'Maj7(9)':["3","5","7","9"],
+    '7(9)':["3","5","b7","9"],
+    '7(b9)':["3","5","b7","b9"],
+    '7sus(9,13)':["11","13","b7","9"],
+    '7sus(b9,13)':["11","13","b7","9"],
+    '7(b9,13)':["3","13","b7","b9"],
+    'Maj(6,9)':["3","5","6","9"],
+    'm(6,9)':["b3","5","6","9"],
+    'm7b5(9)':["b3","b5","b7","9"],
+    'm7(9)':["b3","5","b7","9"],
+    'm7(b9)':["b3","5","b7","b9"],
+    '7(9,13)':["3","13","b7","9"],
+    'm(Maj7,9)':["b3","5","7","9"],
+    'm(Maj7)':["b3","5","7","9"],
+    '7(b9,b13)':["3","b13","b7","b9"],
+    '7(#9,b13)':["3","b13","b7","#9"]
+};
+
+const cadenceParadigmTable = {
+    'maj': [{d:2,t:'m7(9)',g:'ii'},{d:5,t:'7(9)',g:'V'},{d:1,t:'Maj7(9)',g:'I'}],
+    'min': [{d:2,t:'m7b5(9)',g:'ii'},{d:5,t:'7(b9)',g:'V'},{d:1,t:'m7(9)',g:'i'}],
+    'color1':[{d:2,t:'m7(9)',g:'ii'},{d:5,t:'7(9,13)',g:'V'},{d:1,t:'Maj7(9)',g:'I'}],
+    'color2':[{d:2,t:'m7b5(9)',g:'ii'},{d:5,t:'7(b9,b13)',g:'V'},{d:1,t:'m(6,9)',g:'i'}],
+    'color3':[{d:5,t:'7sus(9,13)',g:'V7sus'},{d:5,t:'7(b9,13)',g:'V'},{d:1,t:'Maj(6,9)',g:'I'}],
+    'color4':[{d:5,t:'7sus(b9,13)',g:'V7sus'},{d:5,t:'7(#9,b13)',g:'V'},{d:1,t:'m(Maj7,9)',g:'i'}]
+};
+
+const chordLibraryMatrix = {};
+
+function getMidiIdx(name) {
+    let directIdx = noteNamesList.indexOf(name);
+    if (directIdx !== -1) return directIdx;
+    let baseNatural = customAlterationTable.Natural[name.charAt(0)];
+    let naturalIdx = noteNamesList.indexOf(baseNatural);
+    let accidentalShift = name.includes("#") ? 1 : name.includes("b") ? -1 : 0;
+    return (naturalIdx + accidentalShift + 12) % 12;
+}
+function getFromObj(obj, key) { return obj[key]; }
+function getFromArr(arr, index) { return arr[index]; }
+
+// // CHUNK3 START
+const audioCtxInstance = new (window.AudioContext || window.webkitAudioContext)();
+
+function playChord(indices, rootMidi = null, delay = 0) {
+    if (!document.getElementById('play-cb').checked) return;
+    if (audioCtxInstance.state === 'suspended') audioCtxInstance.resume();
+    indices.forEach(midi => {
+        const freq = 440 * Math.pow(2, (midi - 69) / 12);
+        const osc = audioCtxInstance.createOscillator(); const gain = audioCtxInstance.createGain();
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, audioCtxInstance.currentTime + delay);
+        gain.gain.setValueAtTime(0, audioCtxInstance.currentTime + delay);
+        gain.gain.linearRampToValueAtTime(0.08, audioCtxInstance.currentTime + delay + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtxInstance.currentTime + delay + 1.2);
+        osc.connect(gain); gain.connect(audioCtxInstance.destination);
+        osc.start(audioCtxInstance.currentTime + delay); osc.stop(audioCtxInstance.currentTime + delay + 1.2);
+    });
+    if (rootMidi !== null) {
+        let cleanBassMidi = (rootMidi % 12) + 36;
+        const bassFreq = 440 * Math.pow(2, (cleanBassMidi - 69) / 12);
+        const oscB = audioCtxInstance.createOscillator(); const gainB = audioCtxInstance.createGain();
+        oscB.type = 'triangle'; oscB.frequency.setValueAtTime(bassFreq, audioCtxInstance.currentTime + delay);
+        gainB.gain.setValueAtTime(0, audioCtxInstance.currentTime + delay);
+        gainB.gain.linearRampToValueAtTime(0.35, audioCtxInstance.currentTime + delay + 0.04);
+        gainB.gain.exponentialRampToValueAtTime(0.001, audioCtxInstance.currentTime + delay + 1.6);
+        oscB.connect(gainB); gainB.connect(audioCtxInstance.destination);
+        oscB.start(audioCtxInstance.currentTime + delay); oscB.stop(audioCtxInstance.currentTime + delay + 1.6);
+    }
+}
+
+function playSequence(steps) { steps.forEach((s, i) => playChord(s.indices, s.rootMidiValue, i * 1.4)); }
+
+function prebuildMatrixLibrary() {
+    Object.keys(scaleTable).forEach(root => {
+        chordLibraryMatrix[root] = {};
+        let rootBaseMidi = getMidiIdx(root) + 60;
+
+        Object.keys(chordFormulaTable).forEach(type => {
+            let formula = chordFormulaTable[type];
+            let resolvedNames = formula.map(interval => {
+                let degree = parseInt(interval.replace(/[^0-9]/g, ""));
+                let baseScaleNote = getFromArr(scaleTable[root], degree);
+                if (!baseScaleNote) return "C";
+                if (interval.startsWith("b")) return customAlterationTable.Bemol[baseScaleNote] || baseScaleNote;
+                if (interval.startsWith("#")) return customAlterationTable.Sharp[baseScaleNote] || baseScaleNote;
+                return customAlterationTable.Natural[baseScaleNote] || baseScaleNote;
+            });
+
+            let baseMidis = formula.map(interval => rootBaseMidi + (semitoneMap[interval] || 0));
+
+            // Form 3 (Linear Jazz Stacking): 3rd, 5th, 7th, 9th
+            let n3 = baseMidis[0], n5 = baseMidis[1], n7 = baseMidis[2], n9 = baseMidis[3];
+            while(n5 <= n3) n5 += 12;
+            while(n7 <= n5) n7 += 12;
+            while(n9 <= n7) n9 += 12;
+            let form3Midis = [n3, n5, n7, n9];
+
+            // Form 7 (Inverted Jazz Stacking): 7th, 9th, 3rd, 5th
+            let i7 = baseMidis[2] - 12, i9 = baseMidis[3] - 12, i3 = baseMidis[0], i5 = baseMidis[1];
+            while(i9 <= i7) i9 += 12;
+            while(i3 <= i9) i3 += 12;
+            while(i5 <= i3) i5 += 12;
+            let form7Midis = [i7, i9, i3, i5];
+
+            const smartMapNotes = (midisArr) => midisArr.map(m => {
+                let formulaIndex = baseMidis.findIndex(baseMidi => baseMidi % 12 === m % 12);
+                return formulaIndex !== -1 ? resolvedNames[formulaIndex] : midiToNameMap[m % 12];
+            });
+
+            chordLibraryMatrix[root][type] = {
+                notes: smartMapNotes(baseMidis),
+                midis: { '3': form3Midis, '7': form7Midis },
+                noteVoicings: { '3': smartMapNotes(form3Midis), '7': smartMapNotes(form7Midis) }
+            };
+        });
+    });
+}
+
+prebuildMatrixLibrary();
+
+function createCadenceChord(rootName, chordType, inversionType, grade="", keyName="", cadenceFormMode=3) {
+    let cleanRoot = rootName.replace("♯", "#").replace("♭", "b");
+    let prebuiltRoot = chordLibraryMatrix[cleanRoot] || chordLibraryMatrix[rootName];
+    let prebuilt = prebuiltRoot ? prebuiltRoot[chordType] : null;
+
+    if (!prebuilt) return { name: "", notes: [], indices: [], rootMidiValue: 0, grade: grade, voicingFormUsed: inversionType, fullChordName: "", noteNamesInOrder: [] };
+
+    let finalMidiNotes = prebuilt.midis[inversionType] || prebuilt.midis['3'];
+    let parsedVoicing = prebuilt.noteVoicings[inversionType] || prebuilt.noteVoicings['3'];
+
+    let lang = appState.currentLang || 'en';
+    let baseTranslationMap = { 'C': 'Do', 'D': 'Ré', 'E': 'Mi', 'F': 'Fa', 'G': 'Sol', 'A': 'La', 'B': 'Si' };
+    let baseItSpMap = { 'C': 'Do', 'D': 'Re', 'E': 'Mi', 'F': 'Fa', 'G': 'Sol', 'A': 'La', 'B': 'Si' };
+    let displayedKeyName = keyName;
+    if (lang === 'fr' || lang === 'it' || lang === 'sp') {
+        let rootLetter = keyName.charAt(0);
+        let accidental = keyName.substring(1);
+        let translatedRoot = lang === 'fr' ? baseTranslationMap[rootLetter] : baseItSpMap[rootLetter];
+        displayedKeyName = (translatedRoot || rootLetter) + accidental;
+    } else if (lang === 'de') {
+        if (keyName === 'Bb') displayedKeyName = 'B';
+        else if (keyName === 'B') displayedKeyName = 'H';
+    }
+
+    let chordPrintTitle = `${grade}`;
+    let labelPrompt = lang === 'fr' ? `dans la tonalité de ${displayedKeyName}` : lang === 'de' ? `in der Tonart ${displayedKeyName}` : lang === 'it' ? `nella tonalità di ${displayedKeyName}` : lang === 'sp' ? `en la tonalidad de ${displayedKeyName}` : `of ${displayedKeyName}`;
+    return { name: `${chordPrintTitle} ${labelPrompt}`, notes: parsedVoicing, indices: finalMidiNotes, rootMidiValue: getMidiIdx(cleanRoot) + 60, grade: grade, voicingFormUsed: inversionType, fullChordName: `${cleanRoot}${chordType}`, noteNamesInOrder: parsedVoicing, parentKeyName: displayedKeyName };
+}
+
+function buildPianoUI() {
+    const container = document.getElementById('piano-container'); container.innerHTML = ''; pianoKeys = [];
+    const bPos = [1, 3, 6, 8, 10]; // EXPLICIT VECTOR RENDER PERMANENTLY POPULATED
+    const physicalPianoOffsets = { 1: 1, 3: 2, 6: 4, 8: 5, 10: 6 };
+
+    for(let i=0; i<38; i++){
+        let nIdx = i % 12;
+        if(bPos.indexOf(nIdx)===-1){
+            let k = document.createElement('div'); k.className = 'white key'; k.dataset.idx = i;
+            k.innerHTML = '<div class="dot-stack"><div class="dot dot-current"></div><div class="dot dot-1"></div><div class="dot dot-2"></div><div class="dot dot-3"></div></div>';
+            pianoKeys.push({el:k, noteIndex:nIdx, absoluteIdx: i}); container.appendChild(k);
+            k.onclick = () => { k.classList.toggle('active'); updateDebug(); };
+
+            if(bPos.indexOf((i+1)%12)!==-1 && (i+1) < 38){
+                let b = document.createElement('div'); b.className = 'black key'; b.dataset.idx = i+1;
+                let octavesCount = Math.floor((i+1)/12);
+                let positionInOctave = (i+1)%12;
+                let preciseWhiteKeyIndex = (octavesCount * 7) + physicalPianoOffsets[positionInOctave];
+                b.style.left = (preciseWhiteKeyIndex * (100 / 22)) + "%";
+                b.innerHTML = '<div class="dot-stack"><div class="dot dot-current"></div><div class="dot dot-1"></div><div class="dot dot-2"></div><div class="dot dot-3"></div></div>';
+                b.onclick = () => { b.classList.toggle('active'); updateDebug(); };
+                pianoKeys.push({el:b, noteIndex:(i+1)%12, absoluteIdx: i+1});
+                container.appendChild(b);
+            }
+        }
+    }
+}
+
+// // CHUNK4 START
+function generateNewExercise() {
+    currentStepIndex = 0;
+    saveState();
+    isReplayMode = false;
+    const confirmBtn = document.getElementById('btn-confirm');
+    if (confirmBtn) { confirmBtn.innerText = "CONFIRM"; confirmBtn.classList.remove('replay-mode'); }
+
+    document.querySelectorAll('.key').forEach(k => {
+        k.classList.remove('active', 'has-step1', 'has-step2', 'has-step3');
+        ['.dot-1', '.dot-2', '.dot-3', '.dot-current'].forEach(sel => {
+            let d = k.querySelector(sel); if(d) d.innerText = "";
+        });
+    });
+
+    let currentParadigm = appState.paradigm || 'maj', baseForm = appState.activeVoicing, rootName = "", type = "";
+    let activeTypes = Array.from(document.querySelectorAll('#type-row .type-toggle.active')).map(b => b.dataset.id);
+    if (activeTypes.length === 0) activeTypes = ["ii-V-I"];
+    type = activeTypes[Math.floor(Math.random() * activeTypes.length)];
+
+    if (baseForm === '3/7' && appState.forcedNextForm === 7 && appState.lastRootName) {
+        rootName = appState.lastRootName; baseForm = '7'; appState.forcedNextForm = null;
+    } else {
+        const pool = "C,Db,D,Eb,E,F,G,Ab,A,Bb,B,Gb".split(",");
+        let availablePool = pool.filter(note => (appState.exerciseHistory || []).indexOf(note) === -1);
+        if (availablePool.length === 0) availablePool = pool;
+        rootName = availablePool[Math.floor(Math.random() * availablePool.length)];
+        if(!appState.exerciseHistory) appState.exerciseHistory = [];
+        appState.exerciseHistory.push(rootName);
+        if (appState.exerciseHistory.length > 3) appState.exerciseHistory.shift();
+
+        if (baseForm === '3/7') { baseForm = '3'; appState.forcedNextForm = 7; appState.lastRootName = rootName; }
+        else { appState.forcedNextForm = null; }
+    }
+
+    const mainScale = scaleTable[rootName]; if (!mainScale) return;
+
+    if (appState.activeVoicing === 'Syn') {
+        let chrIdx = getMidiIdx(rootName) % 12;
+        baseForm = (chrIdx >= 0 && chrIdx <= 4) ? '3' : '7';
+    }
+
+    let stepsConfig = cadenceParadigmTable[currentParadigm] || cadenceParadigmTable['maj'];
+
+    // VOICE LEADING ALTERNATION INVERSION RULE
+    let f1, f2, f3;
+    if (baseForm === '3') {
+        f1 = '7'; f2 = '7'; f3 = '3';
+    } else {
+        f1 = '3'; f2 = '3'; f3 = '7';
+    }
+
+    try {
+        // FIXED EXPLICIT ARRAY ELEMENT REFERENCE LOOKUPS
+        let c0 = stepsConfig[0];
+        let c1 = stepsConfig[1];
+        let c2 = stepsConfig[2];
+
+        let chord1Root = mainScale[c0.d];
+        let chord2Root = mainScale[c1.d];
+        let chord3Root = mainScale[c2.d];
+        let formLabel = appState.activeVoicing === 'Syn' ? `S:${baseForm}` : baseForm;
+
+        let calculatedSteps = [
+            createCadenceChord(chord1Root, c0.t, f1, c0.g, rootName, formLabel),
+            createCadenceChord(chord2Root, c1.t, f2, c1.g, rootName, formLabel),
+            createCadenceChord(chord3Root, c2.t, f3, c2.g, rootName, formLabel)
+        ];
+
+        if (type === 'ii-V') { activeChallenge = { steps: [calculatedSteps[0], calculatedSteps[1]], total: 2 }; }
+        else if (type === 'V-I') { activeChallenge = { steps: [calculatedSteps[1], calculatedSteps[2]], total: 2 }; }
+        else { activeChallenge = { steps: calculatedSteps, total: 3 }; }
+
+        let initialStep = activeChallenge.steps[currentStepIndex]; if (!initialStep) return;
+        let suffixMode = (currentParadigm === 'maj' || currentParadigm === 'color1' || currentParadigm === 'color3') ? 'Maj' : 'min';
+
+        document.getElementById('target-text').innerText = `${initialStep.grade} of ${initialStep.parentKeyName} ${suffixMode}`;
+        document.getElementById('target-text').style.color = "#0fc";
+        updateDebug();
+    } catch (e) { console.error(e); }
+}
+
+// // CHUNK5 START
+function verifyChordInputAnswer() {
+    if (!activeChallenge) return;
+    let activeStep = activeChallenge.steps[currentStepIndex]; if (!activeStep) return;
+
+    let playedKeys = []; let playedChromas = [];
+    document.querySelectorAll('.key.active').forEach(k => {
+        let absoluteIndex = parseInt(k.dataset.idx);
+        playedKeys.push(absoluteIndex + 60);
+        playedChromas.push(absoluteIndex % 12);
+    });
+
+    let targetChromas = activeStep.indices.map(idx => idx % 12);
+    let isMatch = (playedChromas.length === targetChromas.length);
+    if (isMatch) {
+        let sortedPlayed = [...playedChromas].sort((a,b)=>a-b);
+        let sortedTargets = [...targetChromas].sort((a,b)=>a-b);
+        for(let i=0; i<sortedTargets.length; i++) {
+            if(sortedPlayed[i] !== sortedTargets[i]) { isMatch = false; break; }
+        }
+    }
+
+    let mainTxt = document.getElementById('target-text');
+    let lang = appState.currentLang || 'en';
+
+    if (isMatch) {
+        playedKeys.sort((a, b) => a - b);
+        playChord(playedKeys, activeStep.rootMidiValue);
+
+        document.querySelectorAll('.key.active').forEach(k => {
+            let stepNum = currentStepIndex + 1;
+            k.classList.add(`has-step${stepNum}`);
+            let indicator = k.querySelector(`.dot-${stepNum}`);
+            if (indicator) indicator.innerText = activeStep.grade;
+            k.classList.remove('active');
+        });
+
+        if (currentStepIndex + 1 >= activeChallenge.total) {
+            if (mainTxt) mainTxt.innerHTML = `<span style="color:#00ff66">${translations[lang].correct}</span>`;
+            let confirmBtn = document.getElementById('btn-confirm');
+            if (confirmBtn) { confirmBtn.className = "action-btn replay-mode"; confirmBtn.innerText = "REPLAY"; }
+            isReplayMode = true;
+
+            if (document.getElementById('auto-cb').checked) { setTimeout(generateNewExercise, 2500); }
+        } else {
+            currentStepIndex++;
+            let nextStep = activeChallenge.steps[currentStepIndex];
+            let currentParadigm = appState.paradigm || 'maj';
+            let suffixMode = (currentParadigm === 'maj' || currentParadigm === 'color1' || currentParadigm === 'color3') ? 'Maj' : 'min';
+            if (mainTxt) mainTxt.innerText = `${nextStep.grade} of ${nextStep.parentKeyName} ${suffixMode}`;
+            updateDebug();
+        }
+    } else {
+        if (mainTxt) {
+            let backupLabel = mainTxt.innerText;
+            mainTxt.innerHTML = `<span style="color:#ff3333">${translations[lang].tryAgain}</span>`;
+            setTimeout(() => { mainTxt.innerText = backupLabel; }, 1200);
+        }
+    }
+}
+
+// // CHUNK6 START
+function saveState() {
+    appState.history = Array.from(document.querySelectorAll('#type-row .type-toggle.active')).map(b => b.dataset.id);
+    appState.play = document.getElementById('play-cb').checked; appState.auto = document.getElementById('auto-cb').checked;
+    appState.paradigm = appState.paradigm || 'maj';
+    appState.activeVoicing = document.getElementById('voicing-dropdown-list').value; appState.currentLang = document.getElementById('lang-dropdown').value;
+    localStorage.setItem('cadence_tool_persistence', JSON.stringify(appState));
+}
+
+function updateParadigmMenu(activeParadigm) {
+    const row = document.getElementById('paradigm-row'); if (!row) return; row.innerHTML = '';
+    paradigmList.forEach(p => {
+        let b = document.createElement('button'); b.className = 'type-toggle' + (activeParadigm === p.id ? ' active' : '');
+        b.innerText = p.label === 'Maj' ? 'Maj' : p.label === 'Min' ? 'min' : p.label; b.dataset.id = p.id;
+        b.onclick = function() { appState.paradigm = p.id; saveState(); updateParadigmMenu(p.id); generateNewExercise(); };
+        row.appendChild(b);
+    });
+}
+
+function updateCategoryMenu(activeTypes) {
+    const row = document.getElementById('type-row'); if (!row) return; row.innerHTML = '';
+    "ii-V,V-I,ii-V-I".split(",").forEach(id => {
+        let b = document.createElement('button'); b.className = 'type-toggle' + (activeTypes.includes(id) ? ' active' : '');
+        b.innerText = id; b.dataset.id = id;
+        b.onclick = function() {
+            if (b.classList.contains('active') && document.querySelectorAll('#type-row .type-toggle.active').length <= 1) return;
+            b.classList.toggle('active'); saveState(); generateNewExercise();
+        };
+        row.appendChild(b);
+    });
+}
+
+function updateDebug() {
+    if(!activeChallenge) return;
+    let chosen = [];
+    document.querySelectorAll('.key.active').forEach(k => {
+        let nameIdx = parseInt(k.dataset.idx) % 12; chosen.push(noteNamesList[nameIdx]);
+    });
+    let s = activeChallenge.steps[currentStepIndex]; if (!s) return;
+    let label = s.fullChordName.replace(/♭/g, "b").replace(/♯/g, "#");
+    let debugContainer = document.getElementById('debug-log');
+
+    if (debugContainer) {
+        debugContainer.innerHTML = `${s.grade} : ${label} [Form ${s.voicingFormUsed}]\nTarget Notes: ${s.noteNamesInOrder.join(' ')}\nChosen Notes: ${chosen.length > 0 ? chosen.join(' ') : "..."}`;
+    }
+}
+
+document.getElementById('target-text').ondblclick = function() {
+    isDebugMode = !isDebugMode; let log = document.getElementById('debug-log');
+    if(log) log.style.display = log.style.display === 'none' ? 'block' : 'none'; updateDebug();
+};
+document.getElementById('btn-reset').onclick = function() { localStorage.clear(); location.reload(); };
+document.getElementById('play-cb').onchange = saveState; document.getElementById('auto-cb').onchange = saveState;
+document.getElementById('voicing-dropdown-list').onchange = function() { saveState(); generateNewExercise(); };
+document.getElementById('lang-dropdown').onchange = function() { saveState(); generateNewExercise(); };
+document.getElementById('btn-new').onclick = () => generateNewExercise();
+document.getElementById('btn-confirm').onclick = function() {
+    if (isReplayMode) { if (activeChallenge) playSequence(activeChallenge.steps); } else { verifyChordInputAnswer(); }
+};
+
+buildPianoUI();
+const savedStateInstance = JSON.parse(localStorage.getItem('cadence_tool_persistence'));
+if(savedStateInstance) {
+    appState = savedStateInstance;
+    if(appState.play !== undefined) document.getElementById('play-cb').checked = appState.play;
+    if(appState.auto !== undefined) document.getElementById('auto-cb').checked = appState.auto;
+    document.getElementById('voicing-dropdown-list').value = appState.activeVoicing || '3/7';
+    document.getElementById('lang-dropdown').value = appState.currentLang || 'en';
+}
+updateParadigmMenu(appState.paradigm || 'maj');
+updateCategoryMenu(appState.history || ["ii-V-I"]);
+generateNewExercise();
+</script>
+</body>
+</html>
+

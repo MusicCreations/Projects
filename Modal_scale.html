@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- # CHUNK 1 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Hierarchical Scale Trainer</title>
+    <style>
+        /* Centering and Responsive Full Window Grid */
+        html, body {
+            height: 100%; margin: 0; display: flex; justify-content: center; align-items: center;
+            background: #1a1a1a; color: #fff; overflow: hidden; font-family: sans-serif;
+        }
+
+        /* ADJUST APP ZOOM HERE: Base unit scaling for elements */
+        #container {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: space-between;
+            width: 95vw; max-width: 1400px;
+            height: 92vh;
+            font-size: 1.8vmin;
+        }
+
+        /* Two-Tier Menu Container Layouts */
+        .family-container {
+            width: 100%; background: #222; padding: 0.6em; border-radius: 0.6em;
+            border: 0.1em solid #444; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 0.6em; justify-content: center;
+        }
+
+        .specific-container {
+            width: 100%; background: #292929; padding: 0.6em; border-radius: 0.6em;
+            border: 0.1em solid #3a3a3a; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 0.5em; justify-content: center;
+            min-height: 3.5em; margin-top: 0.3em;
+        }
+
+        .family-btn {
+            background: #111; color: #3498db; border: 0.15em solid #3498db; padding: 0.4em 1em;
+            font-size: 1em; font-weight: bold; border-radius: 0.4em; cursor: pointer; transition: all 0.15s;
+        }
+        .family-btn.active-family {
+            background: #3498db; color: #fff;
+            box-shadow: 0 0 0.8em rgba(52, 152, 219, 0.4);
+        }
+
+        .mode-btn {
+            background: #333; color: #aaa; border: 0.15em solid #555; padding: 0.3em 0.9em;
+            font-size: 0.95em; font-weight: bold; border-radius: 0.4em; cursor: pointer; transition: all 0.15s;
+        }
+        .mode-btn.active-mode {
+            background: #f39c12; color: #fff; border-color: #f39c12;
+            box-shadow: 0 0 0.8em rgba(243, 156, 18, 0.4);
+        }
+
+        /* Exercise Sub-Mode Selectors Layout */
+        .submode-container {
+            margin-top: 0.3em; margin-bottom: 0.5em; display: flex; justify-content: center; gap: 1.5em;
+        }
+        .sub-btn {
+            background: #252525; color: #888; border: 0.15em solid #444; padding: 0.4em 1.2em;
+            font-size: 1em; font-weight: bold; border-radius: 0.4em; cursor: pointer; transition: all 0.2s;
+        }
+        .sub-btn.active-sub {
+            background: #3498db; color: #fff; border-color: #3498db;
+        }
+
+        /* Center Content Panel Layout with Expanded Maximum Height Boundaries */
+        #panel {
+            background: #2a2a2a; padding: 1.5em 2em; border-radius: 1em;
+            text-align: center; border: 0.2em solid #444; width: 100%;
+            flex: 1; max-height: 34vh;
+            box-sizing: border-box; display: flex; align-items: center;
+            justify-content: center; position: relative;
+        }
+
+        /* Left Side Note Details Window Panel - Enlarged width to 33% */
+        #panel-left-debug {
+            position: absolute; left: 1.5em; top: 1.5em; bottom: 1.5em;
+            width: 33%; background: #111; border: 0.2em solid #00ff00;
+            border-radius: 0.8em; padding: 1em; display: none; text-align: left;
+            box-sizing: border-box; overflow: hidden; z-index: 10;
+        }
+        #panel-left-debug pre {
+            font-family: monospace; font-size: 0.95em; color: #00ff00; margin: 0;
+            white-space: pre-wrap; line-height: 1.35; user-select: text !important;
+        }
+
+        /* Balanced Right Side Tetrachord Window Panel - Enlarged width to 33% */
+        #panel-right-debug {
+            position: absolute; right: 1.5em; top: 1.5em; bottom: 1.5em;
+            width: 33%; background: #111; border: 0.2em solid #00ff00;
+            border-radius: 0.8em; padding: 1em; display: none; text-align: left;
+            box-sizing: border-box; overflow: hidden; z-index: 10;
+        }
+        #panel-right-debug pre {
+            font-family: monospace; font-size: 0.95em; color: #00ff00; margin: 0;
+            white-space: pre-wrap; line-height: 1.35; user-select: text !important;
+        }
+
+        /* Adjusted center spacing constraints to perfectly cradle side panels */
+        #panel-center-content {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; width: 30%; margin: 0 auto;
+        }
+
+        /* Language Selector Placement */
+        #lang-selector {
+            position: absolute; top: 2vmin; right: 2vmin; background: #333; color: #fff;
+            border: 1px solid #555; padding: 0.5vmin 1vmin; border-radius: 0.5vmin;
+            font-size: 1.5vmin; cursor: pointer; z-index: 1000;
+        }
+
+        /* Piano Layout */
+        .piano-container {
+            display: flex; height: 32vh; min-height: 16em; background: #000; padding: 0.3em;
+            border-radius: 0.8em; margin-top: 1em; border: 0.2em solid #555;
+            position: relative; width: 100%; box-sizing: border-box; overflow: hidden;
+        }
+        .key { cursor: pointer; box-sizing: border-box; }
+        .white { flex: 1; height: 100%; background: #eee; z-index: 1; border-radius: 0 0 0.6em 0.6em; border: 0.1em solid #bbb; }
+        .black { position: absolute; width: 3.2%; height: 65%; background: #333; z-index: 10; border-radius: 0 0 0.5em 0.5em; border: 0.1em solid #000; transform: translateX(-50%); }
+
+        /* Key States */
+        .key.selected { background: #f39c12 !important; }
+        .key.correct { background: #27ae60 !important; }
+        .key.wrong { background: #e74c3c !important; }
+
+        /* Typography */
+        #question { font-size: 3em; color: #3498db; font-weight: bold; margin-bottom: 0.2em; cursor: pointer; }
+        #status { font-size: 1.25em; color: #f1c40f; min-height: 1.8em; margin-bottom: 1em; }
+        button.action-btn { padding: 0.8em 1.8em; font-size: 1.1em; cursor: pointer; border: none; border-radius: 0.4em; background: #3498db; color: #fff; font-weight: bold; margin: 0.4em; }
+    </style>
+    <!-- # /CHUNK 1 -->
+</head>
+
+<body>
+    <!-- # CHUNK 2A -->
+    <select id="lang-selector" onchange="changeLanguage(this.value)">
+        <option value="English">English</option>
+        <option value="French">Français</option>
+        <option value="German">Deutsch</option>
+        <option value="Italian">Italiano</option>
+        <option value="Spanish">Español</option>
+    </select>
+
+    <div id="container">
+        <!-- FIRST ROW: Scale Family Selector Buttons -->
+        <div id="family-selector-bar" class="family-container">
+            <button id="fam-diatonic" class="family-btn active-family" onclick="switchScaleFamily('diatonic')">Major Scale Modes</button>
+            <button id="fam-minor" class="family-btn" onclick="switchScaleFamily('minor')">Core Minor Scales</button>
+            <button id="fam-melodic-modes" class="family-btn" onclick="switchScaleFamily('melodic-modes')">Melodic Minor Modes (♭3)</button>
+            <button id="fam-melodic-major" class="family-btn" onclick="switchScaleFamily('melodic-major-modes')">Melodic Major Modes (♮3)</button>
+            <button id="fam-harmonic-modes" class="family-btn" onclick="switchScaleFamily('harmonic-modes')">Harmonic Minor Modes (♭3)</button>
+            <button id="fam-harmonic-major" class="family-btn" onclick="switchScaleFamily('harmonic-major-modes')">Harmonic Major Modes (♮3)</button>
+            <button id="fam-symmetrical" class="family-btn" onclick="switchScaleFamily('symmetrical')">Symmetrical & Diminished</button>
+            <button id="fam-exotic" class="family-btn" onclick="switchScaleFamily('exotic')">Exotic & Chromatic</button>
+            <button id="fam-pentatonic" class="family-btn" onclick="switchScaleFamily('pentatonic')">Pentatonic & Blues</button>
+        </div>
+
+        <!-- SECOND ROW: Dynamic scale target selection buttons row -->
+        <div id="specific-selector-bar" class="specific-container"></div>
+
+        <!-- Sub-Mode Setup Menu -->
+        <div class="submode-container">
+            <button id="btn-sub-scales" class="sub-btn active-sub" onclick="setExerciseMode('scales')">Mode: Scales</button>
+            <button id="btn-sub-alt" class="sub-btn" onclick="setExerciseMode('alterations')">Mode: Alterations</button>
+        </div>
+
+        <div id="panel">
+            <!-- Left Debug Box (Expected vs Inputs) -->
+            <div id="panel-left-debug">
+                <pre id="debug-window">DEBUG WINDOW</pre>
+            </div>
+
+            <!-- Central Challenge Questions & Controls Container -->
+            <div id="panel-center-content">
+                <div id="question" title="Double click to reveal answer">--</div>
+                <div id="status">Select notes.</div>
+
+                <div style="margin-top:0.5em;">
+                    <button id="btn-clear" class="action-btn" onclick="clearSelection()" style="background:#666">Clear</button>
+                    <button id="btn-new" class="action-btn" onclick="generateChallenge()" style="background:#444">New Challenge</button>
+                </div>
+            </div>
+
+            <!-- New Right Debug Box (Tetrachord Breakdowns) -->
+            <div id="panel-right-debug">
+                <pre id="tetrachord-window">TETRACHORD WINDOW</pre>
+            </div>
+        </div>
+
+        <div id="keyboard" class="piano-container"></div>
+    </div>
+
+<script>
+    const i18n = {
+        English: { clear: "Clear", new: "New Challenge", correct: "Correct! Next in 2s...", incorrect: "Incorrect notes.", start: "Starts on", select: "Select notes.", selectAlt: "Select altered notes only.", scaleMode: "Mode: Scales", altMode: "Mode: Alterations", altTitle: "Alterations" },
+        French: { clear: "Effacer", new: "Nouveau Défi", correct: "Correct ! Suite dans 2s...", incorrect: "Notes incorrectes.", start: "Commence par", select: "Sélectionnez les notes.", selectAlt: "Sélectionnez uniquement les notes altérées.", scaleMode: "Mode : Gammes", altMode: "Mode : Altérations", altTitle: "Altérations" },
+        German: { clear: "Löschen", new: "Neue Aufgabe", correct: "Richtig! Weiter in 2 Sek...", incorrect: "Falsche Noten.", start: "Beginnt auf", select: "Wähle die Noten.", selectAlt: "Wähle nur veränderte Noten.", scaleMode: "Modus: Tonleitern", altMode: "Modus: Vorzeichen", altTitle: "Vorzeichen" },
+        Italian: { clear: "Cancella", new: "Nuova Sfida", correct: "Corretto! Prossimo in 2s...", incorrect: "Note errate.", start: "Inizia su", select: "Seleziona le note.", selectAlt: "Seleziona solo le note alterate.", scaleMode: "Modo: Scale", altMode: "Modo: Alterazioni", altTitle: "Alterazioni" },
+        Spanish: { clear: "Borrar", new: "Nuevo Desafío", correct: "¡Correcto! Siguiente en 2s...", incorrect: "Notas incorrectas.", start: "Empieza en", select: "Seleziona las notas.", selectAlt: "Seleziona solo notas alteradas.", scaleMode: "Modo: Escalas", altMode: "Modo: Alteraciones", altTitle: "Alteraciones" }
+    };
+    // <!-- # /CHUNK 2A -->
+
+        // // # CHUNK 2B
+    const modeNamesI18n = {
+        English: {
+            Ionian: "Ionian", Dorian: "Dorian", Phrygian: "Phrygian", Lydian: "Lydian", Mixolydian: "Mixolydian", Aeolian: "Aeolian", Locrian: "Locrian",
+            "Harmonic Minor": "Harmonic Minor", "Melodic Minor": "Melodic Minor", "Dorian b2": "Dorian ♭2", "Lydian Augmented": "Lydian Augmented",
+            "Lydian Dominant": "Lydian Dominant", "Mixolydian b6": "Mixolydian ♭6", "Locrian #2": "Locrian ♯2", "Altered Scale": "Altered Scale",
+            "Locrian n6": "Locrian ♮6", "Ionian #5": "Ionian ♯5", "Dorian #4": "Dorian ♯4", "Phrygian Dominant": "Phrygian Dominant",
+            "Lydian #2": "Lydian ♯2", "Ultra Locrian": "Ultra Locrian", "Half-Whole Diminished": "Half-Whole Diminished", "Whole-Half Diminished": "Whole-Half Diminished",
+            "Whole Tone": "Whole Tone", "Augmented Scale": "Augmented Scale", "Neapolitan Minor": "Neapolitan Minor", "Neapolitan Major": "Neapolitan Major",
+            "Double Harmonic Major": "Double Harmonic Major", "Enigmatic Scale": "Enigmatic Scale", "Chromatic Scale": "Chromatic Scale", "Prometheus Scale": "Prometheus Scale",
+            "Major Pentatonic": "Major Pentatonic", "Minor Pentatonic": "Minor Pentatonic", "The Blues Scale": "The Blues Scale"
+        },
+        French: {
+            Ionian: "Ionien", Dorian: "Dorien", Phrygian: "Phrygien", Lydian: "Lydien", Mixolydian: "Mixolydien", Aeolian: "Éolien", Locrian: "Locrien",
+            "Harmonic Minor": "Mineur Harmonique", "Melodic Minor": "Mineur Mélodique", "Dorian b2": "Dorien ♭2", "Lydian Augmented": "Lydien Augmenté",
+            "Lydian Dominant": "Lydien Dominant", "Mixolydian b6": "Mixolydien ♭6", "Locrian #2": "Locrien ♯2", "Altered Scale": "Gamme Altérée",
+            "Locrian n6": "Locrien ♮6", "Ionian #5": "Ionien ♯5", "Dorian #4": "Dorien ♯4", "Phrygian Dominant": "Phrygien Dominant",
+            "Lydian #2": "Lydien ♯2", "Ultra Locrian": "Ultra Locrien", "Half-Whole Diminished": "Diminuée Demi-Ton/Ton", "Whole-Half Diminished": "Diminuée Ton/Demi-Ton",
+            "Whole Tone": "Par Tons", "Augmented Scale": "Augmentée", "Neapolitan Minor": "Napolitain Mineur", "Neapolitan Major": "Napolitain Majeur",
+            "Double Harmonic Major": "Double Harmonique Majeur", "Enigmatic Scale": "Énigmatique", "Chromatic Scale": "Chromatique", "Prometheus Scale": "Prométhée",
+            "Major Pentatonic": "Pentatonique Majeur", "Minor Pentatonic": "Pentatonique Mineur", "The Blues Scale": "Gamme Blues"
+        }
+    };
+
+    let currentLang = "English", currentExerciseMode = "scales", appIsReady = false;
+    let chosenMode = "Ionian", activeFamily = "diatonic";
+    let targetNotesMod = [], userSelection = [], isLocked = false, debugOn = false, currentScale = null;
+    let tonalityHistory = [];
+
+    const notesStr = "C,C#,D,D#,E,F,F#,G,G#,A,A#,B".split(",");
+    const flatsStr = "C,Db,D,Eb,E,F,Gb,G,Ab,A,Bb,B".split(",");
+
+    const modePatterns = {
+        "Ionian": [0, 0+2, 0+4, 0+5, 0+7, 0+9, 0+11],
+        "Dorian": [0, 0+2, 0+3, 0+5, 0+7, 0+9, 0+10],
+        "Phrygian": [0, 0+1, 0+3, 0+5, 0+7, 0+8, 0+10],
+        "Lydian": [0, 0+2, 0+4, 0+6, 0+7, 0+9, 0+11],
+        "Mixolydian": [0, 0+2, 0+4, 0+5, 0+7, 0+9, 0+10],
+        "Aeolian": [0, 0+2, 0+3, 0+5, 0+7, 0+8, 0+10],
+        "Locrian": [0, 0+1, 0+3, 0+5, 0+6, 0+8, 0+10],
+        "Harmonic Minor": [0, 0+2, 0+3, 0+5, 0+7, 0+8, 0+11],
+        "Melodic Minor": [0, 0+2, 0+3, 0+5, 0+7, 0+9, 0+11],
+        "Dorian b2": [0, 0+1, 0+3, 0+5, 0+7, 0+9, 0+10],
+        "Lydian Augmented": [0, 0+2, 0+4, 0+6, 0+8, 0+9, 0+11],
+        "Lydian Dominant": [0, 0+2, 0+4, 0+6, 0+7, 0+9, 0+10],
+        "Mixolydian b6": [0, 0+2, 0+4, 0+5, 0+7, 0+8, 0+10],
+        "Locrian #2": [0, 0+2, 0+3, 0+5, 0+6, 0+8, 0+10],
+        "Altered Scale": [0, 0+1, 0+3, 0+4, 0+6, 0+8, 0+10],
+        "Locrian n6": [0, 0+1, 0+3, 0+5, 0+6, 0+9, 0+10],
+        "Ionian #5": [0, 0+2, 0+4, 0+5, 0+8, 0+9, 0+11],
+        "Dorian #4": [0, 0+2, 0+3, 0+6, 0+7, 0+9, 0+10],
+        "Phrygian Dominant": [0, 0+1, 0+4, 0+5, 0+7, 0+8, 0+10],
+        "Lydian #2": [0, 0+3, 0+4, 0+6, 0+7, 0+9, 0+11],
+        "Ultra Locrian": [0, 0+1, 0+3, 0+4, 0+6, 0+8, 0+9],
+        "Half-Whole Diminished": [0, 0+1, 0+3, 0+4, 0+6, 0+7, 0+9, 0+10],
+        "Whole-Half Diminished": [0, 0+2, 0+3, 0+5, 0+6, 0+8, 0+9, 0+11],
+        "Whole Tone": [0, 0+2, 0+4, 0+6, 0+8, 0+10],
+        "Augmented Scale": [0, 0+3, 0+4, 0+7, 0+8, 0+11],
+        "Neapolitan Minor": [0, 0+1, 0+3, 0+5, 0+7, 0+8, 0+11],
+        "Neapolitan Major": [0, 0+1, 0+3, 0+5, 0+7, 0+9, 0+11],
+        "Double Harmonic Major": [0, 0+1, 0+4, 0+5, 0+7, 0+8, 0+11],
+        "Enigmatic Scale": [0, 0+1, 0+4, 0+6, 0+8, 0+10, 0+11],
+        "Chromatic Scale": Array.from({length: 12}, (_, i) => i),
+        "Prometheus Scale": [0, 0+2, 0+4, 0+6, 0+9, 0+10],
+        "Major Pentatonic": [0, 0+2, 0+4, 0+7, 0+9],
+        "Minor Pentatonic": [0, 0+3, 0+5, 0+7, 0+10],
+        "The Blues Scale": [0, 0+3, 0+5, 0+6, 0+7, 0+10]
+    };
+
+    const roots = [
+        { name: "C", root: 0 }, { name: "Db", root: 1 }, { name: "D", root: 2 }, { name: "Eb", root: 3 },
+        { name: "E", root: 4 }, { name: "F", root: 5 }, { name: "Gb", root: 6 }, { name: "G", root: 7 },
+        { name: "Ab", root: 8 }, { name: "A", root: 9 }, { name: "Bb", root: 10 }, { name: "B", root: 11 }
+    ];
+
+    const familyMap = {
+        "diatonic": ["Ionian", "Dorian", "Phrygian", "Lydian", "Mixolydian", "Aeolian", "Locrian"],
+        "minor": ["Harmonic Minor", "Melodic Minor"],
+        "melodic-modes": ["Dorian b2", "Locrian #2", "Altered Scale"],
+        "melodic-major-modes": ["Lydian Augmented", "Lydian Dominant", "Mixolydian b6"],
+        "harmonic-modes": ["Locrian n6", "Dorian #4", "Ultra Locrian"],
+        "harmonic-major-modes": ["Ionian #5", "Phrygian Dominant", "Lydian #2"],
+        "symmetrical": ["Half-Whole Diminished", "Whole-Half Diminished", "Whole Tone", "Augmented Scale"],
+        "exotic": ["Neapolitan Minor", "Neapolitan Major", "Double Harmonic Major", "Enigmatic Scale", "Chromatic Scale", "Prometheus Scale"],
+        "pentatonic": ["Major Pentatonic", "Minor Pentatonic", "The Blues Scale"]
+    };
+    // // # /CHUNK 2B
+
+        // // # CHUNK 2C
+    const spellingFallbacks = {
+        "Ionian": ["C","D","E","F","G","A","B"], "Dorian": ["C","D","Eb","F","G","A","Bb"], "Phrygian": ["C","Db","Eb","F","G","Ab","Bb"],
+        "Lydian": ["C","D","E","F#","G","A","B"], "Mixolydian": ["C","D","E","F","G","A","Bb"], "Aeolian": ["C","D","Eb","F","G","Ab","Bb"],
+        "Locrian": ["C","Db","Eb","F","Gb","Ab","Bb"], "Harmonic Minor": ["C","D","Eb","F","G","Ab","B"], "Melodic Minor": ["C","D","Eb","F","G","A","B"],
+        "Dorian b2": ["C","Db","Eb","F","G","A","Bb"], "Lydian Augmented": ["C","D","E","F#","G#","A","B"], "Lydian Dominant": ["C","D","E","F#","G","A","Bb"],
+        "Mixolydian b6": ["C","D","E","F","G","Ab","Bb"], "Locrian #2": ["C","D","Eb","F","Gb","Ab","Bb"], "Altered Scale": ["C","Db","Eb","Fb","Gb","Ab","Bb"],
+        "Locrian n6": ["C","Db","Eb","F","Gb","A","Bb"], "Ionian #5": ["C","D","E","F","G#","A","B"], "Dorian #4": ["C","D","Eb","F#","G","A","Bb"],
+        "Phrygian Dominant": ["C","Db","E","F","G","Ab","Bb"], "Lydian #2": ["C","D#","E","F#","G","A","B"], "Ultra Locrian": ["C","Db","Eb","Fb","Gb","Ab","Bbb"],
+        "Half-Whole Diminished": ["C","Db","Eb","E","F#","G","A","Bb"], "Whole-Half Diminished": ["C","D","Eb","F","Gb","Ab","A","B"],
+        "Whole Tone": ["C","D","E","F#","G#","A#"], "Augmented Scale": ["C","D#","E","G","G#","B"], "Neapolitan Minor": ["C","Db","Eb","F","G","Ab","B"],
+        "Neapolitan Major": ["C","Db","Eb","F","G","A","B"], "Double Harmonic Major": ["C","Db","E","F","G","Ab","B"], "Enigmatic Scale": ["C","Db","E","F#","G#","A#","B"],
+        "Chromatic Scale": ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"], "Prometheus Scale": ["C","D","E","F#","A","Bb"],
+        "Major Pentatonic": ["C","D","E","G","A"], "Minor Pentatonic": ["C","Eb","F","G","Bb"], "The Blues Scale": ["C","Eb","F","F#","G","Bb"]
+    };
+    // // # /CHUNK 2C
+
+
+    // // # CHUNK 3
+    function saveLanguage(l) { localStorage.setItem("user_lang_modal", l); }
+    function loadLanguage() { return localStorage.getItem("user_lang_modal"); }
+
+    function changeLanguage(lang) {
+        if (!i18n[lang]) return;
+        currentLang = lang; saveLanguage(lang);
+        "clear,new".split(",").forEach(id => {
+            const el = document.getElementById('btn-' + id);
+            if (el) el.innerText = i18n[lang][id];
+        });
+        const sMod = document.getElementById('btn-sub-scales'); if(sMod) sMod.innerText = i18n[lang].scaleMode;
+        const aMod = document.getElementById('btn-sub-alt'); if(aMod) aMod.innerText = i18n[lang].altMode;
+        if (appIsReady) renderCurrentChallengeStrings();
+    }
+
+    function setExerciseMode(m) {
+        currentExerciseMode = m;
+        document.getElementById('btn-sub-scales').className = 'sub-btn' + (m === 'scales' ? ' active-sub' : '');
+        document.getElementById('btn-sub-alt').className = 'sub-btn' + (m === 'alterations' ? ' active-sub' : '');
+        generateChallenge();
+    }
+
+    // Controls Tier-1 Family Selection Switching
+    function switchScaleFamily(familyKey) {
+        activeFamily = familyKey;
+        document.querySelectorAll('#family-selector-bar .family-btn').forEach(btn => {
+            if(btn.getAttribute('onclick').includes(`'${familyKey}'`)) btn.classList.add('active-family');
+            else btn.classList.remove('active-family');
+        });
+
+        renderSpecificSubMenuButtons();
+        // Default select the first available scale choice of the newly mounted family group
+        selectTargetMode(familyMap[familyKey][0]);
+    }
+
+    // Injects specific dynamic buttons into Tier-2 row layout
+    function renderSpecificSubMenuButtons() {
+        const bar = document.getElementById('specific-selector-bar'); if(!bar) return;
+        bar.innerHTML = '';
+
+        const scalesList = familyMap[activeFamily] || [];
+        scalesList.forEach(scaleName => {
+            const btn = document.createElement('button');
+            btn.className = 'mode-btn' + (chosenMode === scaleName ? ' active-mode' : '');
+            btn.innerText = scaleName;
+            btn.onclick = () => selectTargetMode(scaleName);
+            bar.appendChild(btn);
+        });
+    }
+
+    function selectTargetMode(scaleName) {
+        chosenMode = scaleName;
+        // Verify family indexing matches to keep parents synced up symmetrically
+        for (const [famKey, list] of Object.entries(familyMap)) {
+            if (list.includes(scaleName) && activeFamily !== famKey) {
+                activeFamily = famKey;
+                document.querySelectorAll('#family-selector-bar .family-btn').forEach(btn => {
+                    if(btn.getAttribute('onclick').includes(`'${famKey}'`)) btn.classList.add('active-family');
+                    else btn.classList.remove('active-family');
+                });
+            }
+        }
+
+        renderSpecificSubMenuButtons();
+        generateChallenge();
+    }
+
+    function buildKeyboard() {
+        const kb = document.getElementById('keyboard'); if (!kb) return; kb.innerHTML = '';
+        let wc = 0;
+        for (let i = 0; i < 29; i++) {
+            if (!notesStr[i % 12].includes('#')) {
+                const k = document.createElement('div'); k.className = 'key white'; k.dataset.index = i;
+                k.onclick = () => handleKeyClick(i, k); kb.appendChild(k);
+            }
+        }
+        for (let i = 0; i < 29; i++) {
+            if (notesStr[i % 12].includes('#')) {
+                const k = document.createElement('div'); k.className = 'key black'; k.dataset.index = i;
+                k.style.left = `${(wc / 17) * 100}%`; k.onclick = () => handleKeyClick(i, k); kb.appendChild(k);
+            } else { wc++; }
+        }
+        appIsReady = true;
+        const sl = loadLanguage();
+        if (sl && i18n[sl]) { currentLang = sl; document.getElementById('lang-selector').value = sl; changeLanguage(sl); }
+
+        const savedChallenge = localStorage.getItem("trainer_active_modal_challenge");
+        if (savedChallenge) {
+            const parsed = JSON.parse(savedChallenge);
+            currentExerciseMode = parsed.mode || "scales";
+            chosenMode = parsed.chosenMode || "Ionian";
+            currentScale = roots.find(s => s.name === parsed.scaleName) || roots[0];
+
+            selectTargetMode(chosenMode);
+            setExerciseMode(currentExerciseMode);
+        } else {
+            switchScaleFamily('diatonic');
+        }
+    }
+
+    function handleKeyClick(i, el) {
+        if (isLocked) return;
+        el.classList.remove('wrong');
+
+        const pattern = modePatterns[chosenMode] || [];
+        // Add 1 to loop back up and strike the completing octave note except for full chromatic scale
+        const maxNotesCount = (chosenMode === "Chromatic Scale") ? 12 : pattern.length + 1;
+
+        if (userSelection.includes(i)) {
+            userSelection = userSelection.filter(x => x !== i); el.classList.remove('selected');
+        } else {
+            if (currentExerciseMode === "scales" && userSelection.length >= maxNotesCount) return;
+            userSelection.push(i); el.classList.add('selected');
+        }
+        updateDebug();
+
+        if (currentExerciseMode === "scales") {
+            if (userSelection.length === maxNotesCount) { validateSequence(); }
+        } else {
+            if (userSelection.length === targetNotesMod.length) { validateSequence(); }
+        }
+    }
+
+    function generateChallenge() {
+        if (!appIsReady) return; isLocked = false; clearSelection();
+
+        let selectedScale = null;
+        let attempts = 0;
+
+        do {
+            selectedScale = roots[Math.floor(Math.random() * roots.length)];
+            attempts++;
+        } while (tonalityHistory.includes(selectedScale.name) && attempts < 100);
+
+        currentScale = selectedScale;
+        tonalityHistory.push(currentScale.name);
+        if (tonalityHistory.length > 3) tonalityHistory.shift();
+
+        const pattern = modePatterns[chosenMode] || [];
+        const maxNotesCount = (chosenMode === "Chromatic Scale") ? 12 : pattern.length + 1;
+
+        if (currentExerciseMode === "scales") {
+            targetNotesMod = Array.from({length: maxNotesCount}, (_, i) => {
+                const stepIdx = i % pattern.length;
+                const octaveOffset = Math.floor(i / pattern.length) * 12;
+                const interval = pattern[stepIdx] + octaveOffset;
+                return (currentScale.root + interval) % 12;
+            });
+        } else {
+            targetNotesMod = [];
+            const fb = spellingFallbacks[chosenMode] || [];
+            fb.forEach((note) => {
+                if (note.includes('#') || note.includes('b') || note.includes('x') || note.includes('bb')) {
+                    const shift = (roots.find(r => r.name === currentScale.name)?.root || 0) % 12;
+                    // Format standard accidentals to match search index strings accurately
+                    let cleanNote = note.replace('♭','b').replace('♯','#');
+                    const chroma = (notesStr.indexOf(cleanNote) !== -1 ? notesStr.indexOf(cleanNote) : flatsStr.indexOf(cleanNote));
+                    if (chroma !== -1 && !targetNotesMod.includes(chroma)) targetNotesMod.push(chroma);
+                }
+            });
+        }
+
+        localStorage.setItem("trainer_active_modal_challenge", JSON.stringify({
+            mode: currentExerciseMode, scaleName: currentScale.name, chosenMode: chosenMode
+        }));
+
+        renderCurrentChallengeStrings();
+    }
+    // // # /CHUNK 3
+
+
+    // // # CHUNK 4
+    function renderCurrentChallengeStrings() {
+        if (!currentScale) return;
+        const qEl = document.getElementById('question'), sEl = document.getElementById('status');
+
+        const localizedModeName = modeNamesI18n[currentLang][chosenMode] || chosenMode;
+        const pattern = modePatterns[chosenMode] || [];
+        const totalNotesTarget = (chosenMode === "Chromatic Scale") ? 12 : pattern.length + 1;
+
+        let instructionText = i18n[currentLang].select.replace('notes.', totalNotesTarget + ' notes.');
+
+        if (currentExerciseMode === "scales") {
+            if (qEl) qEl.innerHTML = `${currentScale.name} ${localizedModeName}`;
+            if (sEl) sEl.innerText = `${instructionText} (${i18n[currentLang].start} ${currentScale.name})`;
+        } else {
+            if (qEl) qEl.innerHTML = `${currentScale.name} ${localizedModeName} (${i18n[currentLang].altTitle})`;
+            if (sEl) sEl.innerText = i18n[currentLang].selectAlt;
+        }
+        updateDebug();
+    }
+
+    function validateSequence() {
+        const sEl = document.getElementById('status'), tSet = new Set(targetNotesMod.map(n => n % 12)), uSet = new Set(userSelection.map(i => i % 12));
+        let ok = true;
+        if (tSet.size !== uSet.size) ok = false;
+        else tSet.forEach(p => { if (!uSet.has(p)) ok = false; });
+
+        if (ok) {
+            isLocked = true; if (sEl) sEl.innerText = i18n[currentLang].correct;
+            userSelection.forEach(idx => { const el = document.querySelector(`[data-index="${idx}"]`); if(el) { el.classList.remove('selected'); el.classList.add('correct'); } });
+            setTimeout(() => { generateChallenge(); }, 2000);
+        } else {
+            if (sEl) sEl.innerText = i18n[currentLang].incorrect;
+            userSelection.forEach(idx => { if (!tSet.has(idx % 12)) { const el = document.querySelector(`[data-index="${idx}"]`); if(el) el.classList.add('wrong'); } });
+        }
+    }
+
+    function clearSelection() { userSelection = []; document.querySelectorAll('.key').forEach(k => k.classList.remove('selected', 'correct', 'wrong')); updateDebug(); }
+
+    function toggleDebug() {
+        debugOn = !debugOn;
+        const dL = document.getElementById('panel-left-debug');
+        const dR = document.getElementById('panel-right-debug');
+        if (dL) dL.style.display = debugOn ? 'block' : 'none';
+        if (dR) dR.style.display = debugOn ? 'block' : 'none';
+        updateDebug();
+    }
+
+    function updateDebug() {
+        if (!currentScale) return;
+
+        const getStructuralFormula = () => {
+            const rawPattern = modePatterns[chosenMode] || [];
+            if (chosenMode === "Chromatic Scale") return "1, ♯1, 2, ♯2, 3, 4, ♯4, 5, ♯5, 6, ♯6, 7";
+
+            let semitoneToDegreeMap = {
+                0: "1", 1: "♭2", 2: "2", 3: "♭3", 4: "3", 5: "4", 6: "♯4",
+                7: "5", 8: "♭6", 9: "6", 10: "♭7", 11: "7", 12: "8"
+            };
+
+            if (chosenMode.includes("Diminished")) {
+                return "1 2 ♭3 4 ♭5 ♭6 6 7 8";
+            }
+            if (chosenMode === "Lydian Augmented" || chosenMode === "Ionian #5") semitoneToDegreeMap = "♯5";
+            if (chosenMode === "Altered Scale") {
+                semitoneToDegreeMap = "♭2"; semitoneToDegreeMap = "♭3";
+                semitoneToDegreeMap = "♭4"; semitoneToDegreeMap = "♭5";
+                semitoneToDegreeMap = "♭6"; semitoneToDegreeMap = "♭7";
+            }
+            if (chosenMode === "Ultra Locrian") {
+                semitoneToDegreeMap = "♭4"; semitoneToDegreeMap = "𝄫7";
+            }
+            if (chosenMode === "Lydian #2") semitoneToDegreeMap = "♯2";
+
+            const formulaSteps = rawPattern.map(semitone => semitoneToDegreeMap[semitone] || semitone);
+            if (chosenMode !== "Whole Tone" && chosenMode !== "Augmented Scale" && !chosenMode.includes("Pentatonic") && chosenMode !== "Prometheus Scale") {
+                formulaSteps.push("8");
+            }
+
+            if (formulaSteps.length === 8) {
+                const lowerHalf = formulaSteps.slice(0, 4).join(" ");
+                const upperHalf = formulaSteps.slice(4, 8).join(" ");
+                return `${lowerHalf} - ${upperHalf}`;
+            }
+
+            return formulaSteps.join(" ");
+        };
+
+        const scaleLetters = ["C", "D", "E", "F", "G", "A", "B"];
+        const rootLetter = currentScale.name.charAt(0);
+        let rootLetterIdx = scaleLetters.indexOf(rootLetter);
+
+        const parsePitchName = (p, i) => {
+            if (chosenMode === "Chromatic Scale") {
+                return currentScale.name.includes('b') ? flatsStr[p % 12] : notesStr[p % 12];
+            }
+            const targetLetterIdx = (rootLetterIdx + i) % 7;
+            const expectedLetter = scaleLetters[targetLetterIdx];
+            const naturalPitches = { "C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11 };
+            const basePitch = naturalPitches[expectedLetter];
+
+            let diff = (p % 12) - basePitch;
+            if (diff > 6) diff -= 12;
+            if (diff < -6) diff += 12;
+
+            let accidental = "";
+            if (diff === 1) accidental = "♯";
+            else if (diff === 2) accidental = "𝄪";
+            else if (diff === -1) accidental = "♭";
+            else if (diff === -2) accidental = "𝄫";
+
+            if (chosenMode.includes("Diminished") && currentScale.name === "B") {
+                const bDimSpelling = ["B", "C♯", "D", "E", "F", "G", "A♭", "A♯", "B"];
+                if (i < bDimSpelling.length) return bDimSpelling[i];
+            }
+
+            return expectedLetter + accidental;
+        };
+
+        const mapNames = arr => arr.map((p, i) => parsePitchName(p, i)).join(', ');
+
+        const getTetrachordAnalysisText = () => {
+            if (chosenMode === "Chromatic Scale" || chosenMode.includes("Pentatonic") || chosenMode === "The Blues Scale" || chosenMode === "Whole Tone" || chosenMode === "Augmented Scale" || chosenMode === "Prometheus Scale") {
+                return "Not applicable to this\nscale structure type.";
+            }
+
+            const fullScalePitches = targetNotesMod;
+            if (fullScalePitches.length < 8) return "Incomplete structure.";
+
+            // Slice out lower (1-4) and upper (5-8) note blocks
+            const lowerTetradPitches = fullScalePitches.slice(0, 4);
+            const upperTetradPitches = fullScalePitches.slice(4, 8);
+
+            const lowerStr = lowerTetradPitches.map((p, i) => parsePitchName(p, i)).join("-");
+            const upperStr = upperTetradPitches.map((p, i) => parsePitchName(p, i + 4)).join("-");
+
+            const getIntervalPatternStr = (pitches) => {
+                let steps = [];
+                for(let k = 0; k < 3; k++) {
+                    let diff = (pitches[k+1] >= pitches[k]) ? (pitches[k+1] - pitches[k]) : (pitches[k+1] + 12 - pitches[k]);
+                    if (diff === 2) steps.push("W");
+                    else if (diff === 1) steps.push("H");
+                    else if (diff === 3) steps.push("1.5W");
+                    else steps.push(diff + "st");
+                }
+                return steps.join(" - ");
+            };
+
+            const lowerPattern = getIntervalPatternStr(lowerTetradPitches);
+            const upperPattern = getIntervalPatternStr(upperTetradPitches);
+
+            // Corrected link calculation: evaluates interval between Note 4 (idx 3) and Note 5 (idx 4)
+            const note4 = fullScalePitches[3];
+            const note5 = fullScalePitches[4];
+            let stepGapValue = (note5 >= note4) ? (note5 - note4) : (note5 + 12 - note4);
+
+            let linkType = "Unknown Link";
+            if (stepGapValue === 2) linkType = "Disjunct (W)";
+            else if (stepGapValue === 1) linkType = "Altered Disjunct (H)";
+            else if (stepGapValue === 0) linkType = "Conjunct (Shared)";
+
+            // Dynamically label upper title as (♭5) for Diminished, and (5) for standard scales
+            const upperLabel = chosenMode.includes("Diminished") ? "Upper (♭5):" : "Upper (5):";
+
+            return `Lower (Root):\n[ ${lowerStr} ]\nFormula: ${lowerPattern}\n\nLink: ${linkType}\n\n${upperLabel}\n[ ${upperStr} ]\nFormula: ${upperPattern}`;
+        };
+
+        const dbWinLeft = document.getElementById('debug-window');
+        const dbWinRight = document.getElementById('tetrachord-window');
+
+        const formulaLine = getStructuralFormula();
+        const tetrachordView = getTetrachordAnalysisText();
+        let exp = mapNames(targetNotesMod);
+
+        if (dbWinLeft) {
+            dbWinLeft.innerText = `STRUCTURE:\n${formulaLine}\n\nEXPECTED:\n${exp || "None"}\n\nINPUT:\n${mapNames(userSelection)}`;
+        }
+        if (dbWinRight) {
+            dbWinRight.innerText = `TETRACHORDS:\n\n${tetrachordView}`;
+        }
+    }
+
+    window.onload = function() {
+        buildKeyboard();
+        const qh = document.getElementById('question');
+        if (qh) {
+            qh.style.userSelect = 'none';
+            qh.addEventListener('dblclick', toggleDebug);
+        }
+    };
+</script>
+</body>
+</html>
+<!-- # /CHUNK 4 -->
